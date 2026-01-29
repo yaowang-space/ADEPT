@@ -1,0 +1,45 @@
+# This code is used to export time-series data processed by the Ziolite4 software, including external standard calibration and downhole fractionation correction.
+
+import numpy as np
+import pandas as pd
+import traceback
+import os
+
+FinalChannelNames = [
+    'Final Pb206/U238',
+    'Final Pb206/U238 age',
+    'Final Pb207/U235',
+    'Final Pb207/U235 age',
+    'Final Pb207/Pb206',
+    'Final Pb207/Pb206 age',
+    'Final Pb208/Th232',
+    'Final U/Th',
+    ]
+
+table = pd.DataFrame()
+for name in FinalChannelNames:
+    try:
+        chn = data.timeSeries(name)
+        if 'Timestamp' not in table.columns:
+            table['Timestamp'] = chn.time()
+        table[name] = chn.data()
+    except Exception as e:
+        print(name)
+        print(traceback.format_exc())
+        continue
+
+from iolite import QtGui
+outdir =  QtGui.QFileDialog.getExistingDirectory(None, 'will save to this folder...')
+
+for s in data.massSpecSamples():
+    if not outdir: break
+    t1 = s.startTime().toMSecsSinceEpoch()
+    t2 = s.endTime().toMSecsSinceEpoch()
+    crit = ((t1-1)/1e3 < table['Timestamp']) & (table['Timestamp'] < (t2+1)/1e3)
+    outpath = os.path.join(outdir, s.sampleName() + '.csv')
+    seg = pd.DataFrame(table[crit])
+    #seg['Timestamp'] = np.round(seg['Timestamp'] - int(seg['Timestamp'].iloc[0]), 3)
+    seg['Timestamp'] = seg['Timestamp'] - int(seg['Timestamp'].iloc[0])
+    seg.dropna(inplace=True)
+    seg.to_csv(outpath, index=False)
+
