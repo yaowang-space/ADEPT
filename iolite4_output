@@ -1,4 +1,4 @@
-# This code is used to export time-series data processed by the Ziolite4 software, including external standard calibration and downhole fractionation correction.
+# This code is used to export time-series data processed by the iolite4 software, including external standard calibration and downhole fractionation correction.
 
 import numpy as np
 import pandas as pd
