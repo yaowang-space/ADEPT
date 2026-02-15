@@ -1,0 +1,613 @@
+###################### Automated Depth Profiling Technique #####################
+
+# The method created by Wang et al. (2025) to quantitatively identify depth profiling age plateaus.
+
+################# STEP 1: INSTALL REQUIRED PACKAGES IF NECESSARY ###############
+# Check and Install Missing Packages
+pack1 <- suppressWarnings(require(stats))
+if(pack1 == FALSE) {install.packages("stats"); library(stats)}
+pack2 <- suppressWarnings(require(MASS))
+if(pack2 == FALSE) {install.packages("MASS"); library(MASS)}
+pack3 <- suppressWarnings(require(ggplot2))
+if(pack3 == FALSE) {install.packages("ggplot2"); library(ggplot2)}
+pack4 <- suppressWarnings(require(zoo))
+if(pack4 == FALSE) {install.packages("zoo"); library(zoo)}
+pack5 <- suppressWarnings(require(changepoint))
+if(pack5 == FALSE) {install.packages("changepoint"); library(changepoint)}
+pack6 <- suppressWarnings(require(readxl))
+if(pack6 == FALSE) {install.packages("readxl"); library(readxl)}
+pack7 <- suppressWarnings(require(nlme))
+if(pack7 == FALSE) {install.packages("nlme"); library(nlme)}
+pack8 <- suppressWarnings(require(tidyverse))
+if(pack8 == FALSE) {install.packages("tidyverse"); library(tidyverse)}
+pack9 <- suppressWarnings(require(mlbench))
+if(pack9 == FALSE) {install.packages("mlbench"); library(mlbench)}
+pack10 <- suppressWarnings(require(Matrix))
+if(pack10 == FALSE) {install.packages("Matrix"); library(Matrix)}
+pack11 <- suppressWarnings(require(dplyr))
+if(pack11 == FALSE) {install.packages("dplyr"); library(dplyr)}
+pack12 <- suppressWarnings(require(forecast))
+if(pack12 == FALSE) {install.packages("forecast"); library(forecast)}
+pack13 <- suppressWarnings(require(openxlsx))
+if(pack13 == FALSE) {install.packages("openxlsx"); library(openxlsx)}
+pack14 <- suppressWarnings(require(gridExtra))
+if(pack14 == FALSE) {install.packages("gridExtra"); library(gridExtra)}
+pack15 <- suppressWarnings(require(png))
+if(pack15 == FALSE) {install.packages("png"); library(png)}
+pack16 <- suppressWarnings(require(mcp))
+if(pack16 == FALSE) {install.packages("mcp"); library(mcp)}
+pack17 <- suppressWarnings(require(writexl))
+if(pack17 == FALSE) {install.packages("writexl"); library(writexl)}
+pack18 <- suppressWarnings(require(IsoplotR))
+if(pack18 == FALSE) {install.packages("IsoplotR"); library(IsoplotR)}
+pack19 <- suppressWarnings(require(DT))
+if(pack19 == FALSE) {install.packages("DT"); library(DT)}
+
+# Clear Temporary Variables
+rm(pack1, pack2, pack3, pack4, pack5, pack6, pack7, pack8, pack9, pack10, pack11, pack12, pack13, pack14, pack15, pack16, pack17, pack18,pack19)
+
+# Clean Up the Working Environment
+rm(list = ls())
+
+################ STEP 2 Set the Working Directory and Parameters ###############
+
+memory.limit(size = NA)  # 不设上限
+options(gc = TRUE)
+
+shinyServer(function(input, output) {
+  
+  # 创建文件夹路径输入框
+  output$folderPathInput <- renderUI({
+    textInput("folderPath", "Enter folder path to save images", value = "C:/Users/YourUsername/Documents/plots")
+  })
+  plot_files <- list()
+  
+  # Reactive expression to read the uploaded file (Excel or CSV)
+  data_list <- reactive({
+    req(input$file)  # Ensure file is uploaded
+    file_path <- input$file$datapath
+    file_extension <- tools::file_ext(file_path)  # 获取文件扩展名
+    
+    if (file_extension %in% c("xlsx", "xls")) {  # Excel 文件
+      sheet_names <- readxl::excel_sheets(file_path)  # 获取 Excel 工作表名称
+      data_list <- lapply(sheet_names, function(sheet) {
+        openxlsx::read.xlsx(file_path, sheet = sheet)  # 读取每个工作表
+      })
+      names(data_list) <- sheet_names
+    } else if (file_extension == "csv") {  # CSV 文件
+      data_list <- list(read.csv(file_path))  # 读取 CSV 文件
+      names(data_list) <- "data"  # 给 CSV 数据赋一个名称
+    } else {
+      showNotification("Unsupported file type. Please upload an Excel or CSV file.", type = "error")
+      return(NULL)  # 如果是其他类型的文件，返回 NULL
+    }
+    
+    return(data_list)
+  })
+  
+  # Process the data when the button is clicked
+  processed_data <- eventReactive(input$process, {
+    
+    chunk_size <- input$chunk_size  # Get the chunk size from the UI input
+    
+    Maximum_age_limit <- input$Maximum_age_limit
+    Minimum_age_limit <- input$Minimum_age_limit
+    Minimum_age_plateau_resolution <- input$Minimum_age_plateau_resolution
+    
+    Lower_limit_of_ablation_time <- input$Lower_limit_of_ablation_time
+    Upper_limit_of_ablation_time <- input$Upper_limit_of_ablation_time
+    
+    Fluctuating_age_variance_threshold <- input$Fluctuating_age_variance_threshold
+    
+    bdata <- data.frame(Analysis = factor(),Group = numeric(), Points = numeric(),
+                        Start = numeric(),End = numeric(),standardized_loess = numeric(),
+                        standardized_Mean = numeric(),Variance = numeric(),
+                        Restored_loess =  numeric(),Segment_Mean =  numeric(),
+                        Calibration_uncertainty =  numeric(), Plateau_uncertainty =  numeric(), Total_uncertainty =  numeric(),
+                        Max_step = numeric(),Min_step = numeric(),
+                        Time_step = numeric(),Filter_1 = numeric(),Filter_2 = numeric(),
+                        Filter_3 = numeric(),Filter_4 = numeric(),
+                        Plateau_Numbers = numeric(),Mean_numbers = numeric(), 
+                        Final_step_Numbers = numeric(), Final_Serial_Number = numeric(),
+                        Final_Age = numeric(),Final_total_uncertainty = numeric()
+    )
+    
+    # 获取用户输入的文件夹路径
+    folder_path <- input$folderPath
+    
+    # 检查路径是否存在，如果不存在则返回错误
+    if (!dir.exists(folder_path)) {
+      dir.create(folder_path, recursive = TRUE)
+    }
+    
+    # 初始化进度条
+    progress <- shiny::Progress$new()
+    on.exit(progress$close())  # 确保在退出时关闭进度条
+    
+    # 设置总的步骤数
+    n_sheets <- length(data_list())
+    total_groups <- sum(sapply(data_list(), function(sheet) {
+      ceiling(nrow(sheet) / chunk_size)
+    }))
+    progress$set(message = "Processing Data", value = 0)
+    
+    
+    for (sheet_name in names(data_list())) {
+      segment.data.raw <- data_list()[[sheet_name]]
+      n_groups <- ceiling(nrow(segment.data.raw) / chunk_size)
+      
+      group_counter <- 1
+      for (i in 1:n_groups) {
+        start_row <- (i - 1) * chunk_size + 1
+        end_row <- min(i * chunk_size, nrow(segment.data.raw))
+        colnames(segment.data.raw) <- gsub(" |/", "_", colnames(segment.data.raw))
+        
+        # Requires age data, elemental data, or isotope data
+        if("Age68" %in% colnames(segment.data.raw) && 
+           !all(is.na(segment.data.raw$Age68[start_row:end_row]))){
+          segment.data <- data.frame(
+            Analysis = segment.data.raw$Analysis[start_row:end_row],
+            Time = segment.data.raw$Time[start_row:end_row],
+            Age68= segment.data.raw$Age68[start_row:end_row],
+            Age75= segment.data.raw$Age75[start_row:end_row],
+            Age76= segment.data.raw$Age76[start_row:end_row]
+          )
+          segment.data[,2:5] <- lapply(segment.data[, 2:5], as.numeric)
+        }else if("Pb206" %in% colnames(segment.data.raw) && 
+                 !all(is.na(segment.data.raw$Pb206[start_row:end_row]))){
+          
+          segment.data <- data.frame(
+            Analysis = segment.data.raw$Analysis[start_row:end_row],
+            Time = segment.data.raw$Time[start_row:end_row],
+            Pb206 = segment.data.raw$Pb206[start_row:end_row],
+            Pb207 = segment.data.raw$Pb207[start_row:end_row],
+            U238 = segment.data.raw$U238[start_row:end_row]
+          )
+          segment.data[,2:5] <- lapply(segment.data[, 2:5], as.numeric)
+          segment.data$U235 = segment.data$U238/137.88
+          segment.data$Pb206U238 <- segment.data$Pb206 / segment.data$U238
+          segment.data$Pb207U235 <- segment.data$Pb207 / segment.data$U235
+          segment.data$Pb207Pb206 <- segment.data$Pb207 / segment.data$Pb206
+          # Define a function to calculate age (assuming error is 0)
+          calculate_age <- function(ratio, method) {
+            if (is.finite(ratio) && ratio > 0) {
+              # Input is a two-element vector: c(ratio, 0)
+              input <- c(ratio, 0)
+              # Call the age() function and specify the method
+              result <- age(input, method = method, exterr = FALSE)
+              return(result[1])  # Return the age value
+            } else {
+              return(NA)
+            }
+          }
+          
+          # Calculate the ages for Pb206_U238, Pb207_U235, and Pb207_Pb206
+          segment.data$Age68 <- sapply(segment.data$Pb206U238, calculate_age, method = 'U238-Pb206')
+          segment.data$Age75 <- sapply(segment.data$Pb207U235, calculate_age, method = 'U235-Pb207')
+          segment.data$Age76 <- sapply(segment.data$Pb207Pb206, calculate_age, method = 'Pb207-Pb206')
+          
+        }else if("Pb206_U238" %in% colnames(segment.data.raw) && 
+                 !all(is.na(segment.data.raw$Pb206_U238[start_row:end_row]))){
+          segment.data <- data.frame(
+            Analysis = segment.data.raw$Analysis[start_row:end_row],
+            Time = segment.data.raw$Time[start_row:end_row],
+            Pb206U238 = segment.data.raw$Pb206_U238[start_row:end_row],
+            Pb207U235 = segment.data.raw$Pb207_U235[start_row:end_row],
+            Pb207Pb206 = segment.data.raw$Pb207_Pb206[start_row:end_row]
+          )
+          segment.data[, 2:5] <- lapply(segment.data[, 2:5], as.numeric)
+          
+          # Define a function to calculate age (assuming error is 0)
+          calculate_age <- function(ratio, method) {
+            if (is.finite(ratio) && ratio > 0) {
+              # Input is a two-element vector: c(ratio, 0)
+              input <- c(ratio, 0)
+              # Call the age() function and specify the method
+              result <- age(input, method = method, exterr = FALSE)
+              return(result[1]) 
+            } else {
+              return(NA)
+            }
+          }
+          
+          # Calculate the ages for Pb206_U238, Pb207_U235, and Pb207_Pb206
+          segment.data$Age68 <- sapply(segment.data$Pb206U238, calculate_age, method = 'U238-Pb206')
+          segment.data$Age75 <- sapply(segment.data$Pb207U235, calculate_age, method = 'U235-Pb207')
+          segment.data$Age76 <- sapply(segment.data$Pb207Pb206, calculate_age, method = 'Pb207-Pb206')
+        }
+        
+        if (all(is.na(segment.data$Age68)) || all(is.na(segment.data$Age75)) || all(is.na(segment.data$Age76))) {
+          bdata <- rbind(bdata, c(segment.data[1, 1], group_counter, NA, NA, NA, NA, NA, NA, 0, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA))
+          group_counter <- group_counter + 1
+          next
+        }
+        
+        segment.data[, c(2:ncol(segment.data))] <- sapply(segment.data[, c(2:ncol(segment.data))], as.numeric)
+        segment.data <- na.omit(segment.data)
+        subset_data <- subset(segment.data, Time >= Lower_limit_of_ablation_time & Time <= Upper_limit_of_ablation_time)
+        subset_data$Raw_Age <- ifelse(subset_data$Age68 < 1000, subset_data$Age68,  ifelse(subset_data$Age76 > 1000, subset_data$Age76, NA))
+        
+        if (all(is.na(subset_data$Age68)) || all(is.na(subset_data$Age75)) || all(is.na(subset_data$Age76))) {
+          bdata <- rbind(bdata, c(segment.data[1, 1], group_counter, NA, NA, NA, NA, NA, NA, 0, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA))
+          group_counter <- group_counter + 1
+          next
+        }
+        
+        #############################ARIMA模型##############################
+        
+        # ARIMA模型
+        detect_outliers_arima <- function(series) {
+          arima_model <- auto.arima(series)
+          residuals <- residuals(arima_model)
+          outlier_indices <- which(abs(residuals) > 2 * sd(residuals))
+          series[outlier_indices] <- NA
+          return(series)
+        }
+        subset_data$Age68 <- detect_outliers_arima(subset_data$Age68)
+        subset_data$Age75 <- detect_outliers_arima(subset_data$Age75)
+        subset_data$Age76 <- detect_outliers_arima(subset_data$Age76)
+        
+        ########################### Exclude discordant ages ############################
+        
+        subset_data$Age <- ifelse(subset_data$Age68 < 1000, subset_data$Age68,  ifelse(subset_data$Age76 > 1000, subset_data$Age76, NA))
+        subset_data$subset_Age68 <- ifelse(abs(subset_data$Age68 - subset_data$Age75) / subset_data$Age75 <= 0.1, subset_data$Age68, NA)
+        #subset_data$subset_Age76 <- ifelse(abs(subset_data$Age76 - subset_data$Age75) / subset_data$Age75 <= 0.1, subset_data$Age76, NA)
+        subset_data$subset_Age76 <- subset_data$Age76
+        
+        #################### Apply mean filtering to handle outliers ###################
+        
+        # 定义一个函数来计算滑动窗口平均值
+        calculate_mean <- function(series, index, window_size = 5) {
+          start_index <- max(1, index - window_size)
+          end_index <- min(length(series), index + window_size)
+          return(mean(series[start_index:end_index], na.rm = TRUE))
+        }
+        
+        # 使用滑动窗口平均值填充 NA 值
+        fill_na_with_mean <- function(na_series, original_series) {
+          na_indices <- which(is.na(na_series))
+          for (index in na_indices) {
+            na_series[index] <- calculate_mean(original_series, index)
+          }
+          return(na_series)
+        }
+        
+        # 对 subset_Age68 和 subset_Age76 应用此函数
+        subset_data$subset_Age68 <- fill_na_with_mean(subset_data$subset_Age68, subset_data$Age68)
+        subset_data$subset_Age76 <- fill_na_with_mean(subset_data$subset_Age76, subset_data$Age76)
+        subset_data$subset_Age <- ifelse(subset_data$subset_Age68 < 1000, subset_data$subset_Age68, ifelse(subset_data$subset_Age76 > 1000, subset_data$subset_Age76, NA))
+        
+        ######################判断是否存在10个以上的数据#####################
+        
+        if ( nrow(subset_data[which(!is.na(subset_data$subset_Age)),]) < 10) {
+          bdata <- rbind(bdata, c(segment.data[1,1],group_counter, nrow(subset_data),
+                                  NA,NA,NA,
+                                  NA,NA,
+                                  NA,NA,
+                                  0,NA,NA,
+                                  NA,NA,NA,
+                                  NA,NA,NA,
+                                  NA,NA
+          ))
+          print(paste("Group", group_counter,subset_data[1,1], "After 10% Empty "))
+          group_counter <- group_counter + 1
+          next
+        }
+        
+        subset_data <- subset_data[complete.cases(subset_data$subset_Age), ]
+        subset_data$Row_Number <- 1:nrow(subset_data)
+        
+        #######################PELT绘图版####################################### 
+        # 进行loess拟合
+        loess_model <- loess(subset_Age ~ Time, data = subset_data, span = 0.15)
+        subset_data$loess_Age <- predict(loess_model)
+        # 删除空缺值
+        subset_data <- subset_data[complete.cases(subset_data$loess_Age), ]
+        # 取对数
+        subset_data$log_loess <- subset_data$loess_Age
+        subset_data$log_Age <- subset_data$Age
+        
+        # 进行标准化
+        minage <- min(subset_data$log_Age)
+        maxage <- max(subset_data$log_Age)
+        
+        minloess <- min(subset_data$log_loess)
+        maxloess <- max(subset_data$log_loess)
+        
+        subset_data$standardized_loess  <- (subset_data$log_loess - minloess)/(maxloess - minloess)
+        subset_data$standardized_Age  <- (subset_data$log_Age - minloess)/(maxloess - minloess)
+        subset_data <- subset_data[complete.cases(subset_data$standardized_loess), ]
+        
+        
+        if ( nrow(subset_data[which(!is.na(subset_data$standardized_loess)),]) < 10) {
+          bdata <- rbind(bdata, c(segment.data[1,1],group_counter, nrow(subset_data),
+                                  NA,NA,NA,
+                                  NA,NA,
+                                  NA,NA,
+                                  0,NA,NA,
+                                  NA,NA,NA,
+                                  NA,NA,NA,
+                                  NA,NA
+          ))
+          print(paste("Group", group_counter,subset_data[1,1], "After 10% Empty "))
+          group_counter <- group_counter + 1
+          next
+        }
+        
+        #计算(AIC/100)*lnn
+        AIC_result <- cpt.mean(subset_data$standardized_loess, method = "PELT", penalty = "AIC", minseglen = 1)
+        aic_pen_value <- attr(AIC_result, "pen.value")
+        SAIC <- (aic_pen_value/100)*log(nrow(subset_data))
+        
+        # 使用PELT方法进行分段变点检测，基于 "standardized_loess" 列的数据Manual
+        cpt_result.loess <- cpt.mean(subset_data$standardized_loess, method = "PELT",penalty =  "Manual" , pen.value = SAIC, minseglen = 1)
+        # 获取分段变点
+        changepoint <- cpt_result.loess@cpts
+        # 标记变点
+        subset_data$Change_loess <- ifelse( subset_data$Row_Number %in% changepoint, "YES", "NO")
+        
+        # 创建包含每个段起始和结束点的数据框
+        segments_data <- data.frame(
+          Start = subset_data$Time[c(1, head(changepoint, -1) + 1)],
+          End = subset_data$Time[changepoint],
+          standardized_loess = subset_data$standardized_loess[changepoint]
+          
+        )
+        
+        # 计算每个段的平均值
+        segments_data$standardized_Mean <- sapply(1:nrow(segments_data), function(i) {
+          mean(subset_data$standardized_loess[segments_data$Start[i] <= subset_data$Time & subset_data$Time <= segments_data$End[i]])
+        })
+        
+        #############################标准化每个数据段##############################
+        
+        normalize_segment <- function(series, start, end) {
+          segment <- series[start:end]
+          normalized_segment <- (segment - min(segment)) / (max(segment) - min(segment))
+          return(normalized_segment)
+        }
+        
+        # 获取每个数据段的起始和结束点
+        segment_starts <- c(1, head(changepoint, -1) + 1)
+        segment_ends <- changepoint
+        
+        # 对每个数据段进行标准化
+        normalized_segments <- lapply(1:length(segment_starts), function(i) {
+          normalize_segment(subset_data$loess_Age, segment_starts[i], segment_ends[i])
+        })
+        
+        # 将标准化的数据段添加到subset_data数据框中
+        subset_data$IS_loess <- unlist(normalized_segments)
+        
+        ##########################重新逆运算计算回去#########################
+        
+        subset_data$Restored_loess <- (as.numeric(subset_data$standardized_loess))*(maxloess-minloess)+minloess
+        subset_data$Restored_age <- (as.numeric(subset_data$standardized_Age))*(maxloess-minloess)+minloess
+        
+        # 创建包含每个段起始和结束点的数据框
+        segments_data$Restored_loess <- subset_data$Restored_loess[changepoint]
+        
+        # 计算每个段的平均值
+        segments_data$Segment_Mean <- sapply(1:nrow(segments_data), function(i) {
+          mean(subset_data$Restored_loess[segments_data$Start[i] <= subset_data$Time & subset_data$Time <= segments_data$End[i]])
+        })
+        
+        segments_data$Number <- 1:nrow(segments_data)
+        
+        
+        # 添加 Time_step 列
+        segments_data$Time_step <- sapply(1:nrow(segments_data), function(i) {
+          subset_data$Time_step[segments_data$Start[i] <= subset_data$Time & subset_data$Time <= segments_data$End[i]]
+        })
+        # 修改 Time_step 列为同一行的 End - Start
+        segments_data$Time_step <- segments_data$End - segments_data$Start
+        segments_data$Max_step <- max(segments_data$Time_step)
+        segments_data$Min_step <- min(segments_data$Time_step)
+        
+        ############################计算每个数据段的方差###########################
+        calculate_variance <- function(series, start, end) {
+          variance <- var(series[start:end], na.rm = TRUE)
+          return(variance)
+        }
+        
+        # 获取每个数据段的起始和结束点
+        segment_starts <- c(1, head(changepoint, -1) + 1)
+        segment_ends <- changepoint
+        
+        # 计算每个数据段的方差
+        segments_data$Variance <- sapply(1:length(segment_starts), function(i) {
+          calculate_variance(subset_data$IS_loess, segment_starts[i], segment_ends[i])
+        })
+        ##################### Calculate the uncertainty of the age plateau ###################
+        
+        # 1 Calculate the calibration uncertainty
+        segments_data$Calibration_uncertainty <- segments_data$Segment_Mean*0.03
+        
+        # 2 Calculate the Plateau uncertainty
+        segments_data$Plateau_uncertainty <- sapply(1:length(segment_starts), function(i) {
+          segment <- subset_data$Raw_Age[segment_starts[i]:segment_ends[i]]
+          segment_no_na <- segment[!is.na(segment)]
+          n_points <- length(segment_no_na)
+          if (n_points < 2) return(NA)  # sd requires at least 2 points
+          sd_val <- sd(segment_no_na)
+          return(sd_val / sqrt(n_points))
+        })
+        
+        # 3 Total uncertainty = √(calibration uncertainty² + plateau uncertainty²)
+        segments_data$Total_uncertainty <- sqrt(
+          segments_data$Calibration_uncertainty^2 + 
+            segments_data$Plateau_uncertainty^2
+        )
+        
+        ############################ Filter the age plateau ############################
+        
+        # 1 First filtering: Age range 
+        #(default zircon age is less than Earth's age 4540 Ma and greater than 0 Ma)
+        segments_data$Filter_1 <- ifelse(as.numeric(segments_data$Segment_Mean) <= Maximum_age_limit & 
+                                           as.numeric(segments_data$Segment_Mean) >= Minimum_age_limit, 
+                                         segments_data$Segment_Mean, NA)
+        
+        # 2 Second filtering: Volatility
+        segments_data$Filter_2 <- ifelse( as.numeric(segments_data$Variance) <= Fluctuating_age_variance_threshold , segments_data$Filter_1 , NA )
+        
+        # 3 Third filtering: Minimum age plateau resolution
+        Identification_resolution <- ifelse(is.na(Minimum_age_plateau_resolution) | Minimum_age_plateau_resolution > 5, 5, Minimum_age_plateau_resolution)
+        segments_data$Filter_3 <- c(segments_data$Filter_2[1], ifelse(as.numeric(segments_data$Time_step[-1]) >= Identification_resolution, segments_data$Filter_2[-1], NA))
+        
+        # 4 Fourth filtering: Metamorphic zircon
+        NO_NULL_Age <- segments_data$Filter_3[!is.na(segments_data$Filter_3)]
+        is_sorted <- all(diff(NO_NULL_Age, na.rm = TRUE) >= 0)
+        is_no_sorted <- all(diff(NO_NULL_Age, na.rm = TRUE) < 0)
+        
+        # 4.1 Determine if the age plateau sequence is ascending
+        if (is_sorted) {
+          segments_data$Filter_4 <- segments_data$Filter_3
+        } else if (is_no_sorted) {
+          # 4.2 Determine if the age plateau sequence is descending
+          segments_data$Filter_4[segments_data$Filter_3 %in% NO_NULL_Age[1]] <- NO_NULL_Age[1]
+        } else {  segments_data$Filter_4 <- NA
+        # 4.3 If the age arrangement is volatile, retain the first plateau and the most stable plateau
+        segments_data$Filter_4[segments_data$Filter_3 %in% NO_NULL_Age[1]] <- NO_NULL_Age[1]
+        segments_data$Filter_4[ segments_data$Variance %in% min(segments_data$Variance[ !is.na(segments_data$Filter_3) & is.na(segments_data$Filter_4) ])] <- 
+          segments_data$Filter_3[ segments_data$Variance %in% min(segments_data$Variance[ !is.na(segments_data$Filter_3) & is.na(segments_data$Filter_4) ])]
+        }
+        segments_data$Final_total_uncertainty <- ifelse(!is.na(segments_data$Filter_4),segments_data$Total_uncertainty,NA)
+        
+        #给个序号
+        segments_data$Final_Plateau_Numbers <- length(segments_data$Filter_4)
+        # 最终年龄平台序号
+        segments_data$Final_Serial_Number <- NA
+        non_na_indices <- which(!is.na(segments_data$Filter_4))
+        segments_data$Final_Serial_Number[non_na_indices] <- seq_along(non_na_indices)
+        
+        # 创建 reactiveValues 存储所有图像路径
+        plot_paths <- reactiveValues(files = list())  # 存储所有生成的图像路径
+        saved_plots <- reactiveValues(saved = FALSE)  # 添加一个标志位，确保图像只保存一次
+        
+        # 创建ggplot图形
+        Final_color <-  ifelse(!is.na(segments_data$Filter_4), "red" ,NA)
+        
+        d <- ggplot() +
+          geom_point(data = subset_data, aes(x = Time, y = Raw_Age), color = "#f46f20", shape = 16, size = 1.1, alpha = 0.3) +
+          #geom_line(data = subset_data, aes(x = Time, y = Raw_Age), color = "cornflowerblue", size = 0.5, alpha = 0.3) +
+          geom_line(data = subset_data, aes(x = Time, y = loess_Age), color = "black", size = 1, alpha = 1.5) +
+          #geom_point(data = subset_data, aes(x = Time, y = loess_Age), color = "black", shape = 16, size = 1.1, alpha = 0.5) +
+          geom_rect(data = segments_data,
+                    aes(xmin = Start, xmax = End, ymin = Segment_Mean - Total_uncertainty, ymax = Segment_Mean + Total_uncertainty), 
+                    fill = Final_color, alpha = 0.15) +
+          geom_segment(data = segments_data, aes(x = Start, xend = End, y = Segment_Mean, yend = Segment_Mean), size = 1.1, color = Final_color) +
+          ggtitle(paste("Analysis:", subset_data[1, 1])) +
+          labs(x = "Time (s)", y = "Age (Ma)") +
+          theme(
+            panel.background = element_rect(fill = "white"),
+            panel.border = element_rect(color = "black", fill = NA, size = 1),
+            axis.line = element_line(color = "black"), 
+            axis.ticks = element_line(color = "black", size = 0.25), 
+            axis.ticks.length = unit(-0.3, "cm"),
+            plot.title = element_text(size = 10),
+            axis.text = element_text(size = 8),
+            axis.title = element_text(size = 10)
+          )
+        
+        # 生成唯一的文件名，确保图像路径唯一
+        plot_path <- file.path(input$folderPath, paste0("plot_", group_counter, "_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".pdf"))
+        #plot_files <<- c(plot_files, plot_path)
+        # 仅在没有保存该图像时执行保存操作
+        if (!saved_plots$saved) {
+          # 保存图像
+          ggsave(plot_path, plot = d, device = "pdf", width = 5.2 / 2, height = 6 * 6 / 7 / 3)
+          # 保存图像路径到 reactiveValues
+          plot_paths$files[[length(plot_paths$files) + 1]] <- plot_path  # 将新生成的路径存入文件列表
+          
+          # 标记该图像已经保存
+          saved_plots$saved <- TRUE
+        }
+        
+        # Store the plot path in the reactiveValues object
+        plot_files$files <- c(plot_files$files, plot_path)
+        
+        # 渲染图像
+        output$plot <- renderPlot({
+          req(length(plot_paths$files) > 0)  # 确保至少有一个图像路径
+          d  # 渲染当前的ggplot对象
+        }, height = 700)
+        
+        # 显示图像 (选择最后一张图显示)
+        output$imageOutput <- renderUI({
+          req(length(plot_paths$files) > 0)  # 确保至少有一个图像路径
+          tags$img(src = plot_paths$files[[length(plot_paths$files)]], width = "100%")  # 显示最后生成的图像
+        })
+        
+        # 处理图像下载 (下载最后一张图像)
+        output$downloadPlot <- downloadHandler(
+          filename = function() {
+            paste0("Output_plot_", subset_data[1, 1] ,"_",Sys.Date(), ".pdf")  # 下载的文件名
+          },
+          content = function(file) {
+            file.copy(plot_paths$files[[length(plot_paths$files)]], file)  # 将最后一张生成的图像文件复制到下载位置
+          }
+        )
+        
+        segments_data$Final_step_Numbers <- sum(!is.na(segments_data$Filter_4))
+        
+        # Iterate over all Plateaus and store values in the Plateau_data data frame
+        for (i in 1:nrow(segments_data)) {
+          bdata <- rbind(bdata, c(
+            subset_data[1, 1], group_counter, nrow(subset_data),
+            segments_data$Start[i], segments_data$End[i],
+            segments_data$standardized_loess[i], segments_data$standardized_Mean[i], segments_data$Variance[i],
+            segments_data$Restored_loess[i], segments_data$Segment_Mean[i],
+            segments_data$Calibration_uncertainty[i],segments_data$Plateau_uncertainty[i],segments_data$Total_uncertainty[i],
+            max(segments_data$Time_step), min(segments_data$Time_step),
+            segments_data$Time_step[i], 
+            segments_data$Filter_1[i], segments_data$Filter_2[i],
+            segments_data$Filter_3[i], segments_data$Filter_4[i],
+            segments_data$Final_Plateau_Numbers[i],segments_data$Number[i],
+            segments_data$Final_step_Numbers[i],segments_data$Final_Serial_Number[i],
+            segments_data$Filter_4[i],segments_data$Final_total_uncertainty[i]
+            
+          ))
+          # 更改列名
+          
+          colnames(bdata) <- c("Analysis", "Group", "Points",
+                               "Start", "End",
+                               "Standardized LOESS", "Standardized mean",  "Variance",
+                               "Restored LOESS", "Segmentation mean", 
+                               "Calibration uncertainty","Plateau uncertainty","Total uncertainty",
+                               "Max integration time","Min integration time",
+                               "Integration time",
+                               "Filter 1", "Filter 2", "Filter 3", "Filter 4",
+                               "Total integration time numbers", "Plateau serial numbers",
+                               "Final integration time numbers", "Final serial number",
+                               "Final age","Final total uncertainty"
+                               
+          )
+        }
+        group_counter <- group_counter + 1
+      }
+    }
+    return(bdata)
+  })
+  
+  output$resultTable <- renderDataTable({
+    req(processed_data())  # Ensure processed data is available
+    tryCatch({
+      datatable(processed_data(), options = list(pageLength = 100))  # Display 100 rows per page
+    }, error = function(e) {
+      showNotification(HTML("Error loading processing results.<br>处理结果加载出错。", e$message), type = "error")
+      NULL  # Return NULL to prevent rendering error
+    })
+  })
+  
+  
+  # Render download button
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      paste("Output_",Sys.Date(), ".csv")
+    },
+    content = function(file) {
+      write.csv(processed_data(), file, row.names = FALSE)
+    }
+  )
+  
+})
