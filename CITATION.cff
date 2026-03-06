@@ -1,4 +1,4 @@
-cff-version: 1.2.0
+cff-version: 1.0.0
 title: "ADEPT: Automated Depth Profiling Technique"
 message: "If you use this software, please cite it as below."
 type: software
@@ -7,7 +7,7 @@ authors:
     given-names: "Yao"
 identifiers:
   - type: doi
-    value: "10.5281/zenodo.18883042"
+    value: "10.5281/zenodo.18883592"
 repository-code: "https://github.com/yaowang-space/ADEPT"
 url: "https://github.com/yaowang-space/ADEPT"
 abstract: "The method created by Wang et al. (2026) to quantitatively segment depth profiling data plateaus."
