@@ -3,8 +3,8 @@ title: "ADEPT: Automated Depth Profiling Technique"
 message: "If you use this software, please cite it as below."
 type: software
 authors:
-  - family-names: "Yao"
-    given-names: "Wang"
+  - family-names: "Wang"
+    given-names: "Yao"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.18883042"
