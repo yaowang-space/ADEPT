@@ -1,12 +1,16 @@
-cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
-authors:
-  - family-names: "Wang"
-    given-names: "Yao"
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
 
-title: "ADEPT: Automated Depth Profiling Technique"
-version: "1.0.0"
-doi: "10.5281/zenodo.18883042" # 如果你还没有 DOI，可以暂时删掉这一行
-date-released: 2026-03-06
-url: "https://github.com/yaowang-space/ADEPT"
-description: "A method to quantitatively segment depth profiling data plateaus."
+cff-version: 1.0.0
+title: 'ADEPT: Automated Depth Profiling Technique'
+message: 'If you use this software, please cite it as below.'
+type: software
+authors:
+  - family-names: Wang
+    given-names: Yao
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.18883042
+url: 'https://github.com/yaowang-space/ADEPT'
+version: 1.0.0
+date-released: '2026-03-06'
