@@ -9,10 +9,26 @@ evolution. *JGR: Solid Earth, 131*, e2025JB033324.
 
 ## Installation
 
+### From GitHub (recommended)
+
 ```r
-# Install from GitHub
 if (!require("remotes")) install.packages("remotes")
 remotes::install_github("yaowang-space/ADEPT")
+```
+
+### From tarball (no internet required after download)
+
+1. Download `ADEPT_1.0.1.tar.gz` from [GitHub Releases](https://github.com/yaowang-space/ADEPT/releases)
+2. Install locally:
+
+```r
+install.packages("ADEPT_1.0.1.tar.gz", repos = NULL, type = "source")
+```
+
+### From local source
+
+```r
+remotes::install_local("path/to/ADEPT")
 ```
 
 ### Dependencies
