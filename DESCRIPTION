@@ -1,0 +1,33 @@
+Package: ADEPT
+Type: Package
+Title: Automated Depth Profiling Technique for U-Pb Geochronology
+Version: 1.0.0
+Authors@R: person("Wang", "et al.", email = "wang@example.com", role = c("aut", "cre"))
+Description: An automated method to quantitatively identify and extract age plateaus
+    from LA-ICP-MS depth profiling data of zircon U-Pb geochronology. The package
+    implements ARIMA-based outlier detection, LOESS smoothing, PELT changepoint
+    segmentation, multi-step plateau filtering (forward/reverse), Bayesian MCMC
+    posterior analysis, and publication-ready visualization. Supports three input
+    formats: direct U-Pb ages (Age68/Age75/Age76), raw isotope counts
+    (Pb206/Pb207/U238), or isotopic ratios (Pb206_U238/Pb207_U235/Pb207_Pb206).
+    Method described in Wang et al. (2025).
+License: MIT + file LICENSE
+Encoding: UTF-8
+RoxygenNote: 7.3.0
+Imports:
+    stats,
+    ggplot2,
+    zoo,
+    changepoint,
+    readxl,
+    forecast,
+    openxlsx,
+    writexl,
+    dplyr,
+    MASS,
+    gridExtra
+Suggests:
+    mcp,
+    IsoplotR
+URL: https://github.com/user/ADEPT
+BugReports: https://github.com/user/ADEPT/issues

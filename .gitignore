@@ -1,0 +1,20 @@
+# R package
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+src/*.o
+src/*.so
+src/*.dll
+
+# Package development
+*.tar.gz
+*.check
+revdep/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
