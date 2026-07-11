@@ -11,7 +11,7 @@ quantitative identification of depth profiling age plateaus.*
 ```r
 # Install from GitHub
 if (!require("remotes")) install.packages("remotes")
-remotes::install_github("user/ADEPT")
+remotes::install_github("yaowang-space/ADEPT")
 ```
 
 ### Dependencies
