@@ -27,15 +27,14 @@ The package requires:
 ```r
 library(ADEPT)
 
-# Default usage: Forward direction, no MCMC
-result <- adept(
-  "Input.xlsx",
-  filter_direction = "Forward",
-  mcmc             = FALSE
-)
+# Load example data
+example_file <- system.file("extdata", "Input(1sample).xlsx", package = "ADEPT")
 
-# Reverse direction (for descending age sequences)
-result <- adept("Input.xlsx", filter_direction = "Reverse", mcmc = FALSE)
+# Default usage: Forward direction, no MCMC
+result <- adept(example_file)
+
+# Reverse direction (for descending age sequences), with MCMC
+result <- adept(example_file, filter_direction = "Reverse", mcmc = TRUE)
 
 # Access results
 head(result$summary)   # Simplified summary (confirmed plateaus only)
