@@ -39,8 +39,15 @@ result <- adept(example_file, filter_direction = "Reverse", mcmc = TRUE)
 # Access results
 head(result$summary)   # Simplified summary (confirmed plateaus only)
 head(result$full)      # Full results (all plateaus, all columns)
-result$plots[[1]]      # First depth profile plot
+result$plots[[1]]      # Display first depth profile plot
 ```
+
+### Example Output
+
+![Example depth profile plot](man/figures/example_plot.png)
+
+*Age vs. ablation time with LOESS-smoothed trend (black line) and identified
+age plateaus (red segments with uncertainty bands).*
 
 ## Main Function
 
