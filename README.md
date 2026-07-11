@@ -143,9 +143,11 @@ Input Excel → Format Detection → ARIMA Outliers → Discordance Filter
 
 ## Citation
 
-Wang et al. (2025). Automated Depth Profiling Technique for quantitative
-identification of depth profiling age plateaus. *Journal of Geophysical
-Research: Solid Earth.*
+Wang, Y., Liu, Z., Zhang, L.-L., Liu, L., Walters, J., Cawood, P. A.,
+Yang, L., Wang, Q., Stockli, D. F., & Zhu, D.-C. (2026). Quantitative
+depth profiling of zircon crystallization histories: New insights into
+Himalayan magmatic-tectonic evolution. *Journal of Geophysical Research:
+Solid Earth*, *131*, e2025JB033324. https://doi.org/10.1029/2025JB033324
 
 ## License
 

@@ -2,7 +2,17 @@ Package: ADEPT
 Type: Package
 Title: Automated Depth Profiling Technique for U-Pb Geochronology
 Version: 1.0.1
-Authors@R: person("Wang", "et al.", email = "wang@example.com", role = c("aut", "cre"))
+Authors@R: c(
+    person("Yao", "Wang", role = c("aut", "cre"), email = "yaowang_cugb@163.com"),
+    person("Ze", "Liu", role = "aut"),
+    person("Liang-Liang", "Zhang", role = "aut"),
+    person("Li", "Liu", role = "aut"),
+    person("Jesse", "Walters", role = "aut"),
+    person("Peter A.", "Cawood", role = "aut"),
+    person("Lei", "Yang", role = "aut"),
+    person("Qing", "Wang", role = "aut"),
+    person("Daniel F.", "Stockli", role = "aut"),
+    person("Di-Cheng", "Zhu", role = "aut"))
 Description: An automated method to quantitatively identify and extract age plateaus
     from LA-ICP-MS depth profiling data of zircon U-Pb geochronology. The package
     implements ARIMA-based outlier detection, LOESS smoothing, PELT changepoint
@@ -10,7 +20,7 @@ Description: An automated method to quantitatively identify and extract age plat
     posterior analysis, and publication-ready visualization. Supports three input
     formats: direct U-Pb ages (Age68/Age75/Age76), raw isotope counts
     (Pb206/Pb207/U238), or isotopic ratios (Pb206_U238/Pb207_U235/Pb207_Pb206).
-    Method described in Wang et al. (2025).
+    Method described in Wang et al. (2026), JGR: Solid Earth, 131, e2025JB033324.
 License: MIT + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.3.0

@@ -1,7 +1,7 @@
 # ADEPT: Automated Depth Profiling Technique
 # adept.R — Main exported function
 #
-# Wang et al. (2025) method for automated identification of age plateaus
+# Wang et al. (2026) method for automated identification of age plateaus
 # from LA-ICP-MS depth profiling data.
 
 #' Automated Depth Profiling Technique
