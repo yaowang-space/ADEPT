@@ -1,10 +1,11 @@
 # ADEPT: Automated Depth Profiling Technique
 
 An R package for automated identification and extraction of age plateaus from
-LA-ICP-MS zircon U-Pb depth profiling data.
+U-Pb depth profiling data.
 
-**Reference:** Wang et al. (2025) — *Automated Depth Profiling Technique for
-quantitative identification of depth profiling age plateaus.*
+**Reference:** Wang et al. (2026). Quantitative depth profiling of zircon
+crystallization histories: New insights into Himalayan magmatic-tectonic
+evolution. *JGR: Solid Earth, 131*, e2025JB033324.
 
 ## Installation
 
