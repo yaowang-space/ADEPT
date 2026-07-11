@@ -22,7 +22,7 @@
 #' @param variance_threshold Maximum allowed intra-plateau variance (default 0.1192)
 #' @param filter_direction \code{"Forward"} keeps ascending age sequences;
 #'   \code{"Reverse"} keeps descending age sequences.
-#' @param mcmc Logical. Run Bayesian MCMC posterior analysis? (default \code{TRUE})
+#' @param mcmc Logical. Run Bayesian MCMC posterior analysis? (default \code{FALSE})
 #' @param plot Logical. Generate and save depth profile plots? (default \code{TRUE})
 #' @param output_path Output Excel file path. \code{NULL} auto-generates from input name.
 #' @param plot_dir Directory for plot PDFs. \code{NULL} uses current directory.
@@ -37,7 +37,8 @@
 #' @examples
 #' \dontrun{
 #' result <- adept("Input.xlsx")
-#' result <- adept("Input.xlsx", filter_direction = "Reverse", mcmc = FALSE)
+#' result <- adept("Input.xlsx", filter_direction = "Reverse")
+#' result <- adept("Input.xlsx", mcmc = TRUE)  # enable MCMC
 #' }
 adept <- function(
     file_path,
@@ -49,7 +50,7 @@ adept <- function(
     min_plateau_resolution    = NULL,
     variance_threshold        = 0.1192,
     filter_direction          = c("Forward", "Reverse"),
-    mcmc                      = TRUE,
+    mcmc                      = FALSE,
     plot                      = TRUE,
     output_path               = NULL,
     plot_dir                  = NULL

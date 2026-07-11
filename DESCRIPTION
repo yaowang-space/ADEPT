@@ -1,7 +1,7 @@
 Package: ADEPT
 Type: Package
 Title: Automated Depth Profiling Technique for U-Pb Geochronology
-Version: 1.0.0
+Version: 1.0.1
 Authors@R: person("Wang", "et al.", email = "wang@example.com", role = c("aut", "cre"))
 Description: An automated method to quantitatively identify and extract age plateaus
     from LA-ICP-MS depth profiling data of zircon U-Pb geochronology. The package

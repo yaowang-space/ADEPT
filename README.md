@@ -26,10 +26,14 @@ The package requires:
 ```r
 library(ADEPT)
 
-# Basic usage with defaults (Forward direction, MCMC on)
-result <- adept("Input.xlsx")
+# Default usage: Forward direction, no MCMC
+result <- adept(
+  "Input.xlsx",
+  filter_direction = "Forward",
+  mcmc             = FALSE
+)
 
-# Reverse direction, no MCMC (faster)
+# Reverse direction (for descending age sequences)
 result <- adept("Input.xlsx", filter_direction = "Reverse", mcmc = FALSE)
 
 # Access results
