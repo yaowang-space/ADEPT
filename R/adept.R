@@ -176,7 +176,7 @@ adept <- function(
       if (length(extra_names) > 0 && !is.null(extra_raw)) {
         matched_rows <- match(subset_data$.ROWID., extra_raw$.ROWID.)
         for (col in extra_names) {
-          subset_data[[col]] <- suppressWarnings(as.numeric(extra_raw[[col]][matched_rows]))
+          subset_data[[col]] <- suppressWarnings(as.numeric(as.character(extra_raw[[col]][matched_rows])))
         }
       }
 
