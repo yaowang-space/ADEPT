@@ -62,7 +62,7 @@ adept <- function(
   sheet_names <- names(data_list)
 
   # ---- Initialize ----
-  output <- NULL
+  output <- list()
   extra_mean_cols <- character(0)
   plots <- list()
 
@@ -107,7 +107,7 @@ adept <- function(
       if (all(is.na(segment.data$Age68)) ||
           all(is.na(segment.data$Age75)) ||
           all(is.na(segment.data$Age76))) {
-        output <- rbind(output, c(
+        output[[length(output) + 1]] <- c(
           segment.data[1, 1], group_counter, 0,
           NA, NA, NA, NA, NA, NA, NA, NA, NA, 0,
           NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
@@ -135,7 +135,7 @@ adept <- function(
       if (all(is.na(subset_data$Age68)) ||
           all(is.na(subset_data$Age75)) ||
           all(is.na(subset_data$Age76))) {
-        output <- rbind(output, c(
+        output[[length(output) + 1]] <- c(
           segment.data[1, 1], group_counter, nrow(subset_data),
           NA, NA, NA, NA, NA, NA, NA, NA, NA, 0,
           NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
@@ -158,7 +158,7 @@ adept <- function(
                                        ifelse(subset_data$subset_Age76 > 1000,
                                               subset_data$subset_Age76, NA))
       if (sum(!is.na(subset_data$subset_Age)) < 10) {
-        output <- rbind(output, c(
+        output[[length(output) + 1]] <- c(
           segment.data[1, 1], group_counter, nrow(subset_data),
           NA, NA, NA, NA, NA, NA, NA, NA, NA, 0,
           NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
@@ -184,7 +184,7 @@ adept <- function(
       subset_data <- loess_segment(subset_data, span = 0.15)
 
       if (sum(!is.na(subset_data$standardized_loess)) < 10) {
-        output <- rbind(output, c(
+        output[[length(output) + 1]] <- c(
           segment.data[1, 1], group_counter, nrow(subset_data),
           NA, NA, NA, NA, NA, NA, NA, NA, NA, 0,
           NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
@@ -263,7 +263,7 @@ adept <- function(
         }
 
         if (mcmc) {
-          output <- rbind(output, c(
+          output[[length(output) + 1]] <- c(
             analysis_name, group_counter, nrow(subset_data),
             segments$Start[k], segments$End[k],
             segments$Time_step[k], segments$Max_step[k], segments$Min_step[k],
@@ -290,7 +290,7 @@ adept <- function(
             extra_vals_row
           ))
         } else {
-          output <- rbind(output, c(
+          output[[length(output) + 1]] <- c(
             analysis_name, group_counter, nrow(subset_data),
             segments$Start[k], segments$End[k],
             segments$Time_step[k], segments$Max_step[k], segments$Min_step[k],
@@ -317,10 +317,10 @@ adept <- function(
     }
   }
 
-  # ---- Pad rows to uniform width (skip rows may be shorter) ----
-  if (!is.null(output)) {
-    max_width <- max(apply(output, 1, length), na.rm = TRUE)
-    output <- t(apply(output, 1, function(row) {
+  # ---- Pad all rows to uniform width, then rbind ----
+  if (length(output) > 0) {
+    max_width <- max(sapply(output, length))
+    output <- do.call(rbind, lapply(output, function(row) {
       if (length(row) < max_width) c(row, rep(NA, max_width - length(row)))
       else row
     }))
