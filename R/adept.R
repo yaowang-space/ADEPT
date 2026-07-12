@@ -172,11 +172,11 @@ adept <- function(
       subset_data <- subset_data[complete.cases(subset_data$subset_Age), ]
       subset_data$Row_Number <- seq_len(nrow(subset_data))
 
-      # Merge extra columns
+      # Merge extra columns (convert to numeric, non-numeric → NA)
       if (length(extra_names) > 0 && !is.null(extra_raw)) {
         matched_rows <- match(subset_data$.ROWID., extra_raw$.ROWID.)
         for (col in extra_names) {
-          subset_data[[col]] <- extra_raw[[col]][matched_rows]
+          subset_data[[col]] <- suppressWarnings(as.numeric(extra_raw[[col]][matched_rows]))
         }
       }
 
