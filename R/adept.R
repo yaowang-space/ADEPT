@@ -113,7 +113,7 @@ adept <- function(
           NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
           NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
           NA, NA, NA
-        ))
+        )
         group_counter <- group_counter + 1
         next
       }
@@ -141,7 +141,7 @@ adept <- function(
           NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
           NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
           NA, NA, NA
-        ))
+        )
         group_counter <- group_counter + 1
         next
       }
@@ -164,7 +164,7 @@ adept <- function(
           NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
           NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
           NA, NA, NA
-        ))
+        )
         group_counter <- group_counter + 1
         next
       }
@@ -190,7 +190,7 @@ adept <- function(
           NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
           NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
           NA, NA, NA
-        ))
+        )
         group_counter <- group_counter + 1
         next
       }
@@ -288,7 +288,7 @@ adept <- function(
             segments$Age75_Mean[k], segments$Age75_Total_uncertainty[k],
             segments$Age76_Mean[k], segments$Age76_Total_uncertainty[k],
             extra_vals_row
-          ))
+          )
         } else {
           output[[length(output) + 1]] <- c(
             analysis_name, group_counter, nrow(subset_data),
@@ -309,7 +309,7 @@ adept <- function(
             segments$Age75_Mean[k], segments$Age75_Total_uncertainty[k],
             segments$Age76_Mean[k], segments$Age76_Total_uncertainty[k],
             extra_vals_row
-          ))
+          )
         }
       }
 
