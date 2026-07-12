@@ -76,10 +76,15 @@ adept <- function(
   }
 
   # ---- Main processing loop ----
+  sheet_idx <- 0
   for (sheet_name in sheet_names) {
+    sheet_idx <- sheet_idx + 1
     segment_data_raw <- data_list[[sheet_name]]
     n_groups <- ceiling(nrow(segment_data_raw) / chunk_size)
     group_counter <- 1
+
+    message(sprintf("Processing: '%s' (%d zircon(s))",
+                    sheet_name, n_groups))
 
     for (i in seq_len(n_groups)) {
       start_row <- (i - 1) * chunk_size + 1
@@ -219,6 +224,13 @@ adept <- function(
                                 var_threshold = variance_threshold,
                                 min_res       = min_plateau_resolution,
                                 direction     = filter_direction)
+
+      # ---- Progress ----
+      n_confirmed <- sum(!is.na(segments$Filter_4))
+      message(sprintf("[%d/%d] %s — %d plateau(s) confirmed (%s)",
+                      i, n_groups,
+                      as.character(subset_data[1, "Analysis"]),
+                      n_confirmed, filter_direction))
 
       # ---- MCMC (optional) ----
       if (mcmc) {
