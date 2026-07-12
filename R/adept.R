@@ -63,8 +63,20 @@ adept <- function(
 
   # ---- Initialize ----
   output <- list()
-  extra_mean_cols <- character(0)
   plots <- list()
+
+  # Pre-scan all sheets to build a consistent master list of extra columns
+  # (union of all numeric extra columns across all sheets)
+  extra_mean_cols <- character(0)
+  all_extra_names <- character(0)
+  for (sheet_name in sheet_names) {
+    raw_sheet <- data_list[[sheet_name]]
+    parsed <- parse_segment_data(raw_sheet, 1, min(10, nrow(raw_sheet)))
+    all_extra_names <- union(all_extra_names, parsed$extra_names)
+  }
+  if (length(all_extra_names) > 0) {
+    extra_mean_cols <- paste0(all_extra_names, "_Mean")
+  }
 
   # ---- Auto output path ----
   if (is.null(output_path)) {
@@ -100,7 +112,6 @@ adept <- function(
       segment.data$.ROWID. <- seq_len(nrow(segment.data))
       if (length(extra_names) > 0 && !is.null(extra_raw)) {
         extra_raw$.ROWID. <- seq_len(nrow(extra_raw))
-        extra_mean_cols <- paste0(extra_names, "_Mean")
       }
 
       # Check for missing ages
