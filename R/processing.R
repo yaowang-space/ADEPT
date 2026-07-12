@@ -346,13 +346,19 @@ calc_uncertainty <- function(segments, df, seg_starts, seg_ends) {
 calc_extra_means <- function(segments, df, extra_names) {
   if (length(extra_names) == 0) return(segments)
 
+  safe_mean <- function(x) {
+    x <- as.numeric(x)
+    x <- x[!is.na(x)]
+    if (length(x) == 0) NA else mean(x)
+  }
+
   for (col_name in extra_names) {
     mean_name <- paste0(col_name, "_Mean")
     if (col_name %in% colnames(df)) {
       segments[[mean_name]] <- sapply(seq_len(nrow(segments)), function(k) {
         vals <- df[[col_name]][segments$Start[k] <= df$Time &
                                df$Time <= segments$End[k]]
-        mean(as.numeric(vals), na.rm = TRUE)
+        safe_mean(vals)
       })
     } else {
       segments[[mean_name]] <- NA
@@ -368,6 +374,11 @@ calc_extra_means <- function(segments, df, extra_names) {
 #' @return Updated segments data.frame with age mean/uncertainty columns
 #' @keywords internal
 calc_age_means <- function(segments, df) {
+  safe_mean <- function(x) {
+    x <- x[!is.na(x)]
+    if (length(x) == 0) NA else mean(x)
+  }
+
   for (age_col in c("Age68", "Age75", "Age76")) {
     if (!age_col %in% colnames(df)) next
 
@@ -377,7 +388,7 @@ calc_age_means <- function(segments, df) {
     segments[[mean_name]] <- sapply(seq_len(nrow(segments)), function(k) {
       vals <- df[[age_col]][segments$Start[k] <= df$Time &
                             df$Time <= segments$End[k]]
-      mean(vals, na.rm = TRUE)
+      safe_mean(vals)
     })
 
     segments[[unc_name]] <- sapply(seq_len(nrow(segments)), function(k) {
