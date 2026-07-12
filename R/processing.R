@@ -88,8 +88,8 @@ parse_segment_data <- function(raw, start_row, end_row) {
     extra_is_num <- sapply(extra_names, function(cn) {
       col_vals <- extra_data[[cn]]
       if (is.numeric(col_vals)) return(TRUE)
-      converted <- suppressWarnings(as.numeric(col_vals))
-      all(is.na(col_vals) | !is.na(converted))
+      converted <- suppressWarnings(as.numeric(as.character(col_vals)))
+      sum(!is.na(converted)) / length(converted) > 0.5
     })
     extra_names <- extra_names[extra_is_num]
   }
