@@ -317,6 +317,15 @@ adept <- function(
     }
   }
 
+  # ---- Pad rows to uniform width (skip rows may be shorter) ----
+  if (!is.null(output)) {
+    max_width <- max(apply(output, 1, length), na.rm = TRUE)
+    output <- t(apply(output, 1, function(row) {
+      if (length(row) < max_width) c(row, rep(NA, max_width - length(row)))
+      else row
+    }))
+  }
+
   # ---- Set column names ----
   if (mcmc) {
     colnames(output) <- c(
