@@ -49,8 +49,8 @@ example_file <- system.file("extdata", "Input(1sample).xlsx", package = "ADEPT")
 # Default usage: Forward direction, no MCMC
 result <- adept(example_file)
 
-# Forward direction with MCMC enabled
-result <- adept(example_file, filter_direction = "Forward", mcmc = TRUE)
+# Reverse direction (for descending age sequences), with MCMC
+result <- adept(example_file, filter_direction = "Reverse", mcmc = TRUE)
 
 # Access results
 head(result$summary)   # Simplified summary (confirmed plateaus only)
