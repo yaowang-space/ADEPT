@@ -111,7 +111,7 @@ The input Excel file must contain sheets with at least one of the following:
 Columns: `Analysis`, `Time`, `Age68`, `Age75`, `Age76`
 
 ### Format 2: Raw isotope counts
-Columns: `Analysis`, `Time`, `Pb206`, `Pb207`, `U238`, `U235`
+Columns: `Analysis`, `Time`, `Pb206`, `Pb207`, `U235`, `U238`
 
 ### Format 3: Isotopic ratios
 Columns: `Analysis`, `Time`, `Pb206_U238`, `Pb207_U235`, `Pb207_Pb206`
