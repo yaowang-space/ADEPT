@@ -28,11 +28,13 @@ run_mcmc <- function(df, segments) {
   mcp_fit <- mcp::mcp(model, df, par_x = "Time")
   sum_mcp <- summary(mcp_fit)
 
-  intercepts_info <- sum_mcp[grep("int", sum_mcp$name), ]
-  cp_info         <- sum_mcp[grep("cp", sum_mcp$name), ]
-  sigma_info      <- sum_mcp[grep("sigma", sum_mcp$name), ]
+  intercepts_info <- sum_mcp[grep("^Intercept_", sum_mcp$parameter), ]
+  cp_info         <- sum_mcp[grep("^cp_", sum_mcp$parameter), ]
+  sigma_info      <- sum_mcp[grep("^sigma_", sum_mcp$parameter), ]
 
   intercepts_info <- data.frame(intercepts_info)
+  intercepts_info$Rhat    <- intercepts_info$rhat
+  intercepts_info$n.eff   <- intercepts_info$ess_bulk
   intercepts_info$sigma   <- as.numeric(sigma_info$upper)
   intercepts_info$sd_mean <- as.numeric(intercepts_info$mean)
   intercepts_info$mean    <- as.numeric(intercepts_info$mean)
